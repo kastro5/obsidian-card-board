@@ -4,6 +4,7 @@ module UpdatedTaskItem exposing
     , dueString
     , init
     , lineNumber
+    , moveCard
     , originalLine
     , toString
     , toggleCompletion
@@ -31,6 +32,7 @@ type UpdatedTaskItem
 type Change
     = ChangeCompletion TaskCompletionSettings TimeWithZone
     | ChangeDueDate TaskCompletionSettings (Maybe Date)
+    | MoveCard TaskCompletionSettings (Maybe String) (Maybe String) Bool (Maybe Date)
     | NoChange
 
 
@@ -179,6 +181,53 @@ toString ((UpdatedTaskItem change taskItem) as updatedTaskItem) =
                         |> removeDueTags
                         |> insertBeforeBlockLink (dueTag taskCompletionSettings date taskItem)
 
+        MoveCard taskCompletionSettings removeTag addTag removeDueDate addDueDate ->
+            let
+                removeOldTag : String -> String
+                removeOldTag str =
+                    case removeTag of
+                        Nothing ->
+                            str
+
+                        Just tag ->
+                            regexReplacer (" #" ++ tag ++ "(?=[^a-zA-Z0-9_/\\-]|$)") (\_ -> "") str
+
+                removeDueTags : String -> String
+                removeDueTags str =
+                    if removeDueDate then
+                        str
+                            |> regexReplacer " @due\\(\\d{4}-\\d{2}-\\d{2}\\)" (\_ -> "")
+                            |> regexReplacer " 📅 \\d{4}-\\d{2}-\\d{2}" (\_ -> "")
+                            |> regexReplacer " \\[due:: \\d{4}-\\d{2}-\\d{2}\\]" (\_ -> "")
+
+                    else
+                        str
+
+                addNewDate : String -> String
+                addNewDate str =
+                    case addDueDate of
+                        Nothing ->
+                            str
+
+                        Just date ->
+                            insertBeforeBlockLink (" " ++ dueString taskCompletionSettings date) str
+
+                addNewTag : String -> String
+                addNewTag str =
+                    case addTag of
+                        Nothing ->
+                            str
+
+                        Just tag ->
+                            insertBeforeBlockLink (" #" ++ tag) str
+            in
+            updatedTaskItem
+                |> originalLine
+                |> removeOldTag
+                |> removeDueTags
+                |> addNewDate
+                |> addNewTag
+
         NoChange ->
             originalLine updatedTaskItem
 
@@ -215,6 +264,9 @@ toggleCompletion taskCompletionSettings now (UpdatedTaskItem change taskItem) =
         ChangeDueDate _ _ ->
             UpdatedTaskItem (ChangeCompletion taskCompletionSettings now) taskItem
 
+        MoveCard _ _ _ _ _ ->
+            UpdatedTaskItem (ChangeCompletion taskCompletionSettings now) taskItem
+
         NoChange ->
             UpdatedTaskItem (ChangeCompletion taskCompletionSettings now) taskItem
 
@@ -222,6 +274,11 @@ toggleCompletion taskCompletionSettings now (UpdatedTaskItem change taskItem) =
 updateDate : TaskCompletionSettings -> Maybe Date -> UpdatedTaskItem -> UpdatedTaskItem
 updateDate taskCompletionSettings date (UpdatedTaskItem _ taskItem) =
     UpdatedTaskItem (ChangeDueDate taskCompletionSettings date) taskItem
+
+
+moveCard : TaskCompletionSettings -> Maybe String -> Maybe String -> Bool -> Maybe Date -> UpdatedTaskItem -> UpdatedTaskItem
+moveCard settings removeTag addTag removeDueDate addDueDate (UpdatedTaskItem _ taskItem) =
+    UpdatedTaskItem (MoveCard settings removeTag addTag removeDueDate addDueDate) taskItem
 
 
 

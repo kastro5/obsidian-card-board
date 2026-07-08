@@ -19,6 +19,7 @@ module Form.Settings exposing
     , toggleTaskCompletionShowUtcOffset
     , updateDefaultColumnName
     , updateFirstDayOfWeek
+    , updateNewTaskFile
     , updateTaskCompletionFormat
     )
 
@@ -50,6 +51,7 @@ type alias SettingsForm =
     , firstDayOfWeek : String
     , future : String
     , ignoreFileNameDates : Bool
+    , newTaskFile : String
     , otherTags : String
     , taskCompletionFormat : String
     , taskCompletionInLocalTime : Bool
@@ -128,6 +130,7 @@ init settings =
     , firstDayOfWeek = firstDayOfWeek_
     , future = Maybe.withDefault "" defaultColumnNames_.future
     , ignoreFileNameDates = globalSettings_.ignoreFileNameDates
+    , newTaskFile = globalSettings_.newTaskFile
     , otherTags = Maybe.withDefault "" defaultColumnNames_.otherTags
     , taskCompletionFormat = taskCompletionFormat_
     , taskCompletionInLocalTime = globalSettings_.taskCompletionInLocalTime
@@ -145,13 +148,14 @@ init settings =
 
 safeDecoder : SD.Decoder SettingsForm Settings
 safeDecoder =
-    SD.map14 settingsBuilder
+    SD.map15 settingsBuilder
         boardConfigFormsDecoder
         completedDecoder
         filtersDecoder
         firstDayOfWeekDecoder
         futureDecoder
         ignoreFileNameDatesDecoder
+        newTaskFileDecoder
         otherTagsDecoder
         taskCompletionFormatDecoder
         taskCompletionInLocalTimeDecoder
@@ -314,6 +318,11 @@ updateFirstDayOfWeek newValue settingsForm =
     { settingsForm | firstDayOfWeek = newValue }
 
 
+updateNewTaskFile : String -> SettingsForm -> SettingsForm
+updateNewTaskFile newFile settingsForm =
+    { settingsForm | newTaskFile = newFile }
+
+
 updateTaskCompletionFormat : String -> SettingsForm -> SettingsForm
 updateTaskCompletionFormat newFormat settingsForm =
     { settingsForm | taskCompletionFormat = newFormat }
@@ -409,6 +418,12 @@ ignoreFileNameDatesDecoder =
         |> SD.lift .ignoreFileNameDates
 
 
+newTaskFileDecoder : SD.Decoder SettingsForm String
+newTaskFileDecoder =
+    SD.identity
+        |> SD.lift .newTaskFile
+
+
 otherTagsDecoder : SD.Decoder SettingsForm (Maybe String)
 otherTagsDecoder =
     SD.identity
@@ -424,6 +439,7 @@ settingsBuilder :
     -> GlobalSettings.FirstDayOfWeek
     -> Maybe String
     -> Bool
+    -> String
     -> Maybe String
     -> GlobalSettings.TaskCompletionFormat
     -> Bool
@@ -433,7 +449,7 @@ settingsBuilder :
     -> Maybe String
     -> Maybe String
     -> Settings
-settingsBuilder bc com fts fdw fut ifn ots tcf clt cso tod tom und unt =
+settingsBuilder bc com fts fdw fut ifn ntf ots tcf clt cso tod tom und unt =
     let
         defaultColumnNames_ : DefaultColumnNames
         defaultColumnNames_ =
@@ -455,6 +471,7 @@ settingsBuilder bc com fts fdw fut ifn ots tcf clt cso tod tom und unt =
             , taskCompletionFormat = tcf
             , taskCompletionInLocalTime = clt
             , taskCompletionShowUtcOffset = cso
+            , newTaskFile = ntf
             }
     in
     { boardConfigs = bc

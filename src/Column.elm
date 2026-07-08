@@ -10,11 +10,14 @@ module Column exposing
     , dated
     , decoder
     , encoder
+    , hasDueDateMembership
     , isCollapsed
     , isCompleted
+    , membershipTag
     , name
     , namedTag
     , namedTagTag
+    , newTaskSuffix
     , otherTags
     , setCollapse
     , setNameToDefault
@@ -179,6 +182,41 @@ cards boardId column =
     in
     toList column
         |> List.map (Card.fromTaskItem cardIdPrefix (tagsToHide column))
+
+
+hasDueDateMembership : Column -> Bool
+hasDueDateMembership column =
+    case column of
+        Dated _ ->
+            True
+
+        _ ->
+            False
+
+
+membershipTag : Column -> Maybe String
+membershipTag column =
+    case column of
+        NamedTag namedTagColumn ->
+            Just (NamedTagColumn.tag namedTagColumn)
+
+        _ ->
+            Nothing
+
+
+newTaskSuffix : Maybe String -> Column -> String
+newTaskSuffix maybeDueDateStr column =
+    case column of
+        NamedTag namedTagColumn ->
+            " #" ++ NamedTagColumn.tag namedTagColumn
+
+        Dated _ ->
+            maybeDueDateStr
+                |> Maybe.map (\d -> " " ++ d)
+                |> Maybe.withDefault ""
+
+        _ ->
+            ""
 
 
 containsTask : String -> Column -> Bool

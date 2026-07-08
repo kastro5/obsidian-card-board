@@ -660,6 +660,7 @@ exampleSettingsForm =
     , firstDayOfWeek = ""
     , future = ""
     , ignoreFileNameDates = False
+    , newTaskFile = ""
     , otherTags = ""
     , taskCompletionFormat = ""
     , taskCompletionInLocalTime = False

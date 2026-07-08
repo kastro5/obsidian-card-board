@@ -4,6 +4,7 @@ module Session exposing
     , TaskCompletionSettings
     , addTaskList
     , boardConfigs
+    , cardDropTarget
     , cards
     , dataviewTaskCompletion
     , default
@@ -20,9 +21,11 @@ module Session exposing
     , moveBoard
     , moveColumn
     , moveDragable
+    , newTaskFile
     , removeTaskItems
     , replaceTaskItems
     , replaceTaskList
+    , setCardDropTarget
     , settings
     , stopTrackingDragable
     , switchToBoardAt
@@ -72,7 +75,8 @@ type Session
 
 
 type alias Config =
-    { dataviewTaskCompletion : DataviewTaskCompletion
+    { cardDropTarget : Maybe String
+    , dataviewTaskCompletion : DataviewTaskCompletion
     , dragTracker : DragTracker
     , firstDayOfWeek : Time.Weekday
     , isActiveView : Bool
@@ -105,7 +109,8 @@ type Msg
 default : Session
 default =
     Session
-        { dataviewTaskCompletion = DataviewTaskCompletion.default
+        { cardDropTarget = Nothing
+        , dataviewTaskCompletion = DataviewTaskCompletion.default
         , dragTracker = DragTracker.init
         , firstDayOfWeek = Time.Mon
         , isActiveView = False
@@ -132,7 +137,8 @@ fromFlags flags =
                 dayNumber
     in
     Session
-        { dataviewTaskCompletion = flags.dataviewTaskCompletion
+        { cardDropTarget = Nothing
+        , dataviewTaskCompletion = flags.dataviewTaskCompletion
         , dragTracker = DragTracker.init
         , firstDayOfWeek = Date.numberToWeekday <| momentToWeekdayNumber flags.firstDayOfWeek
         , isActiveView = False
@@ -154,6 +160,11 @@ fromFlags flags =
 boardConfigs : Session -> SafeZipper BoardConfig
 boardConfigs (Session config) =
     Settings.boardConfigs config.settings
+
+
+cardDropTarget : Session -> Maybe String
+cardDropTarget (Session config) =
+    config.cardDropTarget
 
 
 cards : Session -> List Card
@@ -286,6 +297,16 @@ uniqueId (Session config) =
 
 
 -- TRANSFORM
+
+
+newTaskFile : Session -> String
+newTaskFile session =
+    globalSettings session |> .newTaskFile
+
+
+setCardDropTarget : Maybe String -> Session -> Session
+setCardDropTarget target (Session config) =
+    Session { config | cardDropTarget = target }
 
 
 makeActiveView : Bool -> Session -> Session

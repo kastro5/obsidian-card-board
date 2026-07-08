@@ -22,8 +22,8 @@ import DragAndDrop.DragTracker as DragTracker exposing (DragTracker)
 import DragAndDrop.Rect as Rect
 import FeatherIcons
 import Html exposing (Attribute, Html)
-import Html.Attributes exposing (attribute, checked, class, disabled, hidden, id, style, tabindex, type_)
-import Html.Events exposing (onClick)
+import Html.Attributes exposing (attribute, checked, class, disabled, hidden, id, placeholder, style, tabindex, type_, value)
+import Html.Events exposing (onClick, onInput)
 import Html.Events.Extra.Mouse as Mouse exposing (onContextMenu, onDown)
 import Html.Keyed
 import Html.Lazy
@@ -48,7 +48,8 @@ import UpdatedTaskItem exposing (UpdatedTaskItem)
 
 
 type Model
-    = DeletingCard String String Session
+    = AddingTask String Column Session
+    | DeletingCard String String Session
     | EditingCardDueDate DatePicker TaskItem Session
     | ViewingBoard Session
 
@@ -114,6 +115,9 @@ editCardDueDateRequested cardId model =
 mapSession : (Session -> Session) -> Model -> Model
 mapSession fn model =
     case model of
+        AddingTask text column session ->
+            AddingTask text column <| fn session
+
         ViewingBoard session ->
             ViewingBoard <| fn session
 
@@ -127,6 +131,9 @@ mapSession fn model =
 toSession : Model -> Session
 toSession model =
     case model of
+        AddingTask _ _ session ->
+            session
+
         ViewingBoard session ->
             session
 
@@ -142,7 +149,12 @@ toSession model =
 
 
 type Msg
-    = CardMouseDown
+    = AddTaskCancelled
+    | AddTaskClicked Column
+    | AddTaskConfirmed
+    | AddTaskTextChanged String
+    | CardDragStart ( String, DragTracker.ClientData )
+    | CardMouseDown
     | CardRightMouseDown String Mouse.Event
     | ColumnMouseDown ( String, DragTracker.ClientData )
     | DatePickerMsg DatePicker.Msg
@@ -171,9 +183,83 @@ columnDragType =
     "card-board-column"
 
 
+cardDragType : String
+cardDragType =
+    "card-board-card"
+
+
+cardDropBeaconType : String
+cardDropBeaconType =
+    "data-" ++ cardDragType ++ "-beacon"
+
+
 update : Msg -> Model -> ( Model, Cmd Msg, Session.Msg )
 update msg model =
     case msg of
+        AddTaskCancelled ->
+            ( cancelCurrentState model, Cmd.none, Session.NoOp )
+
+        AddTaskClicked column ->
+            ( AddingTask "" column (toSession model), Cmd.none, Session.NoOp )
+
+        AddTaskConfirmed ->
+            case model of
+                AddingTask taskText column session ->
+                    let
+                        filePath : String
+                        filePath =
+                            Session.newTaskFile session
+
+                        today : Date
+                        today =
+                            Session.timeWithZone session |> TimeWithZone.toDate
+
+                        taskCompletionSettings : TaskCompletionSettings
+                        taskCompletionSettings =
+                            Session.taskCompletionSettings session
+
+                        maybeDueDateStr : Maybe String
+                        maybeDueDateStr =
+                            if Column.hasDueDateMembership column then
+                                Just (UpdatedTaskItem.dueString taskCompletionSettings today)
+
+                            else
+                                Nothing
+
+                        suffix : String
+                        suffix =
+                            Column.newTaskSuffix maybeDueDateStr column
+
+                        fullTaskText : String
+                        fullTaskText =
+                            "- [ ] " ++ taskText ++ suffix
+                    in
+                    ( ViewingBoard session
+                    , if String.isEmpty filePath || String.isEmpty taskText then
+                        Cmd.none
+
+                      else
+                        InteropPorts.appendTaskToFile filePath fullTaskText
+                    , Session.NoOp
+                    )
+
+                _ ->
+                    ( model, Cmd.none, Session.NoOp )
+
+        AddTaskTextChanged text ->
+            case model of
+                AddingTask _ column session ->
+                    ( AddingTask text column session, Cmd.none, Session.NoOp )
+
+                _ ->
+                    ( model, Cmd.none, Session.NoOp )
+
+        CardDragStart ( draggableId, clientData ) ->
+            ( mapSession (Session.waitForDrag clientData) model
+            , InteropPorts.trackDraggable cardDragType clientData.clientPos draggableId
+            , Session.NoOp
+            )
+
         CardMouseDown ->
             ( model, Cmd.none, Session.NoOp )
 
@@ -265,14 +351,51 @@ update msg model =
                         , Session.NoOp
                         )
 
+                    else if dragData.dragType == cardDragType then
+                        ( model
+                            |> updateCardDropTarget dragData
+                            |> (mapSession <| Session.moveDragable dragData)
+                        , Cmd.none
+                        , Session.NoOp
+                        )
+
                     else
                         ( model, Cmd.none, Session.NoOp )
 
                 DragData.Stop ->
-                    ( mapSession Session.stopTrackingDragable model
-                    , InteropPorts.updateSettings <| Session.settings <| toSession model
-                    , Session.NoOp
-                    )
+                    if dragData.dragType == cardDragType then
+                        let
+                            session : Session
+                            session =
+                                toSession model
+
+                            draggedId : Maybe String
+                            draggedId =
+                                DragTracker.uniqueId (Session.dragTracker session)
+
+                            targetColumnName : Maybe String
+                            targetColumnName =
+                                Session.cardDropTarget session
+
+                            cmd : Cmd Msg
+                            cmd =
+                                case ( draggedId, targetColumnName ) of
+                                    ( Just taskItemId, Just colName ) ->
+                                        moveCardToColumn session taskItemId colName
+
+                                    _ ->
+                                        Cmd.none
+                        in
+                        ( mapSession (Session.stopTrackingDragable >> Session.setCardDropTarget Nothing) model
+                        , cmd
+                        , Session.NoOp
+                        )
+
+                    else
+                        ( mapSession Session.stopTrackingDragable model
+                        , InteropPorts.updateSettings <| Session.settings <| toSession model
+                        , Session.NoOp
+                        )
 
         ModalCancelClicked ->
             ( cancelCurrentState model
@@ -373,21 +496,37 @@ update msg model =
 
 view : Model -> Html Msg
 view model =
+    let
+        ghost : Html Msg
+        ghost =
+            cardGhostView (toSession model)
+    in
     case model of
+        AddingTask taskText column session ->
+            Html.div []
+                [ boardsView session
+                , modalAddTask taskText column session
+                , ghost
+                ]
+
         ViewingBoard session ->
             Html.div []
-                [ boardsView session ]
+                [ boardsView session
+                , ghost
+                ]
 
         DeletingCard title cardId session ->
             Html.div []
                 [ boardsView session
                 , modalDeleteCardConfirm title cardId
+                , ghost
                 ]
 
         EditingCardDueDate datePicker taskItem session ->
             Html.div []
                 [ boardsView session
                 , modalEditCardDueDate datePicker taskItem session
+                , ghost
                 ]
 
 
@@ -581,6 +720,99 @@ modalDeleteCardConfirm title cardId =
                 ]
             ]
         ]
+
+
+modalAddTask : String -> Column -> Session -> Html Msg
+modalAddTask taskText column _ =
+    let
+        isInvalid : Bool
+        isInvalid =
+            String.isEmpty (String.trim taskText)
+    in
+    Html.div [ class "modal-container" ]
+        [ Html.div
+            [ class "modal-bg"
+            , style "opacity" "0.85"
+            ]
+            []
+        , Html.div [ class "modal" ]
+            [ Html.div
+                [ class "modal-close-button"
+                , onClick ModalCloseClicked
+                ]
+                []
+            , Html.div [ class "modal-title" ]
+                [ Html.text <| "Add Task to \"" ++ Column.name column ++ "\"" ]
+            , Html.div [ class "modal-content" ]
+                [ Html.div [ class "setting-item" ]
+                    [ Html.div [ class "setting-item-info" ]
+                        [ Html.div [ class "setting-item-name" ] [ Html.text "Task" ] ]
+                    , Html.div [ class "setting-item-control" ]
+                        [ Html.input
+                            [ type_ "text"
+                            , placeholder "Task description"
+                            , value taskText
+                            , onInput AddTaskTextChanged
+                            ]
+                            []
+                        ]
+                    ]
+                ]
+            , Html.div [ class "modal-button-container" ]
+                [ Html.button
+                    [ attributeIf (not isInvalid) (class "mod-cta")
+                    , attributeIf isInvalid (attribute "aria-disabled" "true")
+                    , onClick AddTaskConfirmed
+                    , disabled isInvalid
+                    , tabindex 1
+                    ]
+                    [ Html.text "Add" ]
+                , Html.button
+                    [ onClick ModalCancelClicked
+                    , tabindex 2
+                    ]
+                    [ Html.text "Cancel" ]
+                ]
+            ]
+        ]
+
+
+cardGhostView : Session -> Html Msg
+cardGhostView session =
+    let
+        dragTracker : DragTracker
+        dragTracker =
+            Session.dragTracker session
+    in
+    case dragTracker of
+        DragTracker.Dragging clientData domData ->
+            if domData.dragType /= cardDragType then
+                empty
+
+            else
+                case Session.taskFromId clientData.uniqueId session of
+                    Nothing ->
+                        empty
+
+                    Just taskItem ->
+                        Html.li
+                            [ class "card-board-card cm-s-obsidian card-board-card-ghost"
+                            , style "position" "fixed"
+                            , style "left" (String.fromFloat (clientData.clientPos.x - domData.offset.x - clientData.offsetPos.x) ++ "px")
+                            , style "top" (String.fromFloat (clientData.clientPos.y - domData.offset.y - clientData.offsetPos.y) ++ "px")
+                            , style "width" (String.fromFloat domData.draggedNodeStartRect.width ++ "px")
+                            , style "pointer-events" "none"
+                            ]
+                            [ Html.div [ class "card-board-card-highlight-area" ] []
+                            , Html.div [ class "card-board-card-drag-handle" ] []
+                            , Html.div [ class "card-board-card-content-area" ]
+                                [ Html.div [ class "card-board-card-title card-board-card-title-ghost" ]
+                                    [ Html.text (TaskItem.title taskItem) ]
+                                ]
+                            ]
+
+        _ ->
+            empty
 
 
 boardsView : Session -> Html Msg
@@ -933,7 +1165,23 @@ columnView draggedId boardId columnIndex today column =
                     [ Html.text <| name ]
                 , Html.span [ class "sub-text" ]
                     [ Html.text <| columnCountString column ]
+                , if not (Column.isCompleted column) then
+                    Html.div
+                        [ class "card-board-add-task-button"
+                        , attribute "aria-label" "Add task"
+                        , nonPropogatingOnDown <| always CardMouseDown
+                        , onClick <| AddTaskClicked column
+                        ]
+                        [ FeatherIcons.plus
+                            |> FeatherIcons.withSize 1
+                            |> FeatherIcons.withSizeUnit "em"
+                            |> FeatherIcons.toHtml []
+                        ]
+
+                  else
+                    empty
                 ]
+            , beacon cardDropBeaconType (BeaconPosition.Before name)
             , Html.Keyed.ul [ class "card-board-column-list" ]
                 (List.map (cardView today) (Column.cards boardId column))
             ]
@@ -980,13 +1228,31 @@ cardView today card =
                     ""
     in
     Html.li
-        [ class "card-board-card cm-s-obsidian"
+        [ id ("card-drag:" ++ cardId)
+        , class "card-board-card cm-s-obsidian"
         , attributeIf (not <| String.isEmpty dataTags) (attribute "data-tags" dataTags)
         , nonPropogatingOnDown <| always CardMouseDown
         , onContextMenu <| CardRightMouseDown (Card.id card)
         ]
         [ Html.div [ class ("card-board-card-highlight-area " ++ highlightAreaClass) ]
             []
+        , Html.div
+            [ class "card-board-card-drag-handle"
+            , nonPropogatingOnDown <|
+                \e ->
+                    CardDragStart
+                        ( "card-drag:" ++ cardId
+                        , { uniqueId = taskItemId
+                          , clientPos = Coords.fromFloatTuple e.clientPos
+                          , offsetPos = Coords.fromFloatTuple e.offsetPos
+                          }
+                        )
+            ]
+            [ FeatherIcons.menu
+                |> FeatherIcons.withSize 1
+                |> FeatherIcons.withSizeUnit "em"
+                |> FeatherIcons.toHtml []
+            ]
         , Html.div [ class "card-board-card-content-area" ]
             [ Html.input
                 [ type_ "checkbox"
@@ -1255,6 +1521,76 @@ tabHeaderClass currentBoardIndex index =
 
         Nothing ->
             ""
+
+
+moveCardToColumn : Session -> String -> String -> Cmd Msg
+moveCardToColumn session taskItemId targetColumnName =
+    let
+        today : Date
+        today =
+            Session.timeWithZone session |> TimeWithZone.toDate
+
+        taskCompletionSettings : TaskCompletionSettings
+        taskCompletionSettings =
+            Session.taskCompletionSettings session
+
+        ignoreFileNameDates : Bool
+        ignoreFileNameDates =
+            Session.ignoreFileNameDates session
+
+        boardColumns : List Column
+        boardColumns =
+            Session.boardConfigs session
+                |> SafeZipper.current
+                |> Maybe.map (\bc -> Board.init (Session.uniqueId session) bc (Session.taskList session))
+                |> Maybe.map (Board.columns ignoreFileNameDates today)
+                |> Maybe.withDefault []
+
+        maybeTask : Maybe TaskItem
+        maybeTask =
+            Session.taskFromId taskItemId session
+
+        maybeSourceColumn : Maybe Column
+        maybeSourceColumn =
+            LE.find (\col -> Column.containsTask taskItemId col) boardColumns
+
+        maybeTargetColumn : Maybe Column
+        maybeTargetColumn =
+            LE.find (\col -> Column.name col == targetColumnName) boardColumns
+    in
+    case ( maybeTask, maybeSourceColumn, maybeTargetColumn ) of
+        ( Just taskItem, Just sourceColumn, Just targetColumn ) ->
+            InteropPorts.rewriteTasks
+                (TaskItem.filePath taskItem)
+                [ UpdatedTaskItem.init taskItem
+                    |> UpdatedTaskItem.moveCard
+                        taskCompletionSettings
+                        (Column.membershipTag sourceColumn)
+                        (Column.membershipTag targetColumn)
+                        (Column.hasDueDateMembership sourceColumn)
+                        (if Column.hasDueDateMembership targetColumn then
+                            Just today
+
+                         else
+                            Nothing
+                        )
+                ]
+
+        _ ->
+            Cmd.none
+
+
+updateCardDropTarget : DragData -> Model -> Model
+updateCardDropTarget { cursor, beacons } model =
+    case Rect.closestTo Coords.Horizontal cursor beacons of
+        Nothing ->
+            model
+
+        Just (BeaconPosition.Before colName) ->
+            mapSession (Session.setCardDropTarget (Just colName)) model
+
+        Just (BeaconPosition.After colName) ->
+            mapSession (Session.setCardDropTarget (Just colName)) model
 
 
 updateBoardOrder : DragTracker -> DragData -> Model -> Model

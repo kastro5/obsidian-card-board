@@ -817,3 +817,49 @@ h3.setting-heading-compact {
 .datepicker-other-month.datepicker-picked {
   color: white;
 }
+
+.card-board-add-task-button {
+  margin-left: auto;
+  cursor: pointer;
+  opacity: 0;
+  color: var(--text-muted);
+  transition: opacity 0.1s;
+  display: flex;
+  align-items: center;
+}
+
+.card-board-column:hover .card-board-add-task-button {
+  opacity: 1;
+}
+
+.card-board-column.collapsed .card-board-add-task-button {
+  display: none;
+}
+
+.card-board-card {
+  grid: "mark drag contents"
+        / 5px 1.5em auto;
+}
+
+.card-board-card-drag-handle {
+  grid-area: drag;
+  cursor: grab;
+  display: flex;
+  align-items: flex-start;
+  padding-top: 0.3em;
+  opacity: 0;
+  color: var(--text-muted);
+  transition: opacity 0.1s;
+}
+
+.card-board-card:hover .card-board-card-drag-handle {
+  opacity: 1;
+}
+
+.card-board-card-ghost {
+  opacity: 0.75;
+  z-index: 1000;
+  cursor: grabbing;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  list-style: none;
+}

@@ -20,6 +20,7 @@ import TsJson.Encode as TsEncode exposing (required)
 
 type FromElm
     = AddFilePreviewHovers (List { filePath : String, id : String })
+    | AppendTaskToFile { filePath : String, taskText : String }
     | CloseView
     | DeleteTask TaskItemFields
     | DisplayTaskMarkdown (List { filePath : String, taskMarkdown : List { id : String, markdown : String } })
@@ -103,10 +104,13 @@ toElm =
 fromElm : TsEncode.Encoder FromElm
 fromElm =
     TsEncode.union
-        (\vAddFilePreviewHovers vCloseView vDeleteTask vDisplayTaskMarkdown vElmInitialized vOpenTaskSourceFile vRequestPaths vShowCardContextMenu vTrackDraggable vUpdateSettings vUpdateTasks value ->
+        (\vAddFilePreviewHovers vAppendTaskToFile vCloseView vDeleteTask vDisplayTaskMarkdown vElmInitialized vOpenTaskSourceFile vRequestPaths vShowCardContextMenu vTrackDraggable vUpdateSettings vUpdateTasks value ->
             case value of
                 AddFilePreviewHovers info ->
                     vAddFilePreviewHovers info
+
+                AppendTaskToFile info ->
+                    vAppendTaskToFile info
 
                 CloseView ->
                     vCloseView
@@ -139,6 +143,7 @@ fromElm =
                     vUpdateTasks info
         )
         |> TsEncode.variantTagged "addFilePreviewHovers" addFilePreviewHoversEncoder
+        |> TsEncode.variantTagged "appendTaskToFile" appendTaskToFileEncoder
         |> TsEncode.variant0 "closeView"
         |> TsEncode.variantTagged "deleteTask" deleteTaskEncoder
         |> TsEncode.variantTagged "displayTaskMarkdown" displayTaskMarkdownEncoder
@@ -154,6 +159,14 @@ fromElm =
 
 
 -- HELPERS
+
+
+appendTaskToFileEncoder : TsEncode.Encoder { filePath : String, taskText : String }
+appendTaskToFileEncoder =
+    TsEncode.object
+        [ required "filePath" .filePath TsEncode.string
+        , required "taskText" .taskText TsEncode.string
+        ]
 
 
 addFilePreviewHoversEncoder : TsEncode.Encoder (List { filePath : String, id : String })

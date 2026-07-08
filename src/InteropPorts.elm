@@ -1,5 +1,6 @@
 port module InteropPorts exposing
     ( addHoverToCardEditButtons
+    , appendTaskToFile
     , closeView
     , decodeFlags
     , deleteTask
@@ -57,6 +58,14 @@ addHoverToCardEditButtons cards =
     cards
         |> List.map (\c -> { filePath = Card.filePath c, id = Card.editButtonId c })
         |> InteropDefinitions.AddFilePreviewHovers
+        |> TsEncode.encoder InteropDefinitions.interop.fromElm
+        |> interopFromElm
+
+
+appendTaskToFile : String -> String -> Cmd msg
+appendTaskToFile filePath taskText =
+    { filePath = filePath, taskText = taskText }
+        |> InteropDefinitions.AppendTaskToFile
         |> TsEncode.encoder InteropDefinitions.interop.fromElm
         |> interopFromElm
 

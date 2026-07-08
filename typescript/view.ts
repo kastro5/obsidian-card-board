@@ -97,6 +97,9 @@ export class CardBoardView extends ItemView {
         case "addFilePreviewHovers":
           that.handleAddFilePreviewHovers(fromElm.data);
           break;
+        case "appendTaskToFile":
+          that.handleAppendTaskToFile(fromElm.data);
+          break;
         case "closeView":
           that.handleCloseView();
           break;
@@ -180,6 +183,18 @@ export class CardBoardView extends ItemView {
         }
       }
     })
+  }
+
+  async handleAppendTaskToFile(data: { filePath: string, taskText: string }) {
+    const existingFile = this.app.vault.getAbstractFileByPath(data.filePath);
+
+    if (existingFile instanceof TFile) {
+      const content = await this.vault.read(existingFile);
+      const newContent = content.endsWith("\n") ? content + data.taskText : content + "\n" + data.taskText;
+      await this.vault.modify(existingFile, newContent);
+    } else {
+      await this.vault.create(data.filePath, data.taskText);
+    }
   }
 
   async handleCloseView() {

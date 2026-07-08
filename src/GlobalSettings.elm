@@ -10,6 +10,7 @@ module GlobalSettings exposing
     , v_0_11_0_decoder
     , v_0_12_0_decoder
     , v_0_13_0_decoder
+    , v_0_14_0_decoder
     , v_0_5_0_decoder
     , v_0_6_0_decoder
     , v_0_7_0_decoder
@@ -49,6 +50,7 @@ type alias GlobalSettings =
     , taskCompletionFormat : TaskCompletionFormat
     , taskCompletionInLocalTime : Bool
     , taskCompletionShowUtcOffset : Bool
+    , newTaskFile : String
     }
 
 
@@ -68,6 +70,7 @@ default =
     , taskCompletionFormat = ObsidianCardBoard
     , taskCompletionInLocalTime = True
     , taskCompletionShowUtcOffset = True
+    , newTaskFile = ""
     }
 
 
@@ -85,7 +88,21 @@ encoder =
         , TsEncode.required "taskCompletionFormat" .taskCompletionFormat taskCompletionFormatEncoder
         , TsEncode.required "taskCompletionInLocalTime" .taskCompletionInLocalTime TsEncode.bool
         , TsEncode.required "taskCompletionShowUtcOffset" .taskCompletionShowUtcOffset TsEncode.bool
+        , TsEncode.required "newTaskFile" .newTaskFile TsEncode.string
         ]
+
+
+v_0_14_0_decoder : TsDecode.Decoder GlobalSettings
+v_0_14_0_decoder =
+    TsDecode.succeed GlobalSettings
+        |> TsDecode.andMap (TsDecode.field "defaultColumnNames" DefaultColumnNames.v_0_13_0_decoder)
+        |> TsDecode.andMap (TsDecode.field "filters" <| TsDecode.list Filter.decoder)
+        |> TsDecode.andMap (TsDecode.field "firstDayOfWeek" firstDayOfWeekDecoder)
+        |> TsDecode.andMap (TsDecode.field "ignoreFileNameDates" TsDecode.bool)
+        |> TsDecode.andMap (TsDecode.field "taskCompletionFormat" taskCompletionFormatDecoder)
+        |> TsDecode.andMap (TsDecode.field "taskCompletionInLocalTime" TsDecode.bool)
+        |> TsDecode.andMap (TsDecode.field "taskCompletionShowUtcOffset" TsDecode.bool)
+        |> TsDecode.andMap (TsDecode.field "newTaskFile" TsDecode.string)
 
 
 v_0_13_0_decoder : TsDecode.Decoder GlobalSettings
@@ -98,6 +115,7 @@ v_0_13_0_decoder =
         |> TsDecode.andMap (TsDecode.field "taskCompletionFormat" taskCompletionFormatDecoder)
         |> TsDecode.andMap (TsDecode.field "taskCompletionInLocalTime" TsDecode.bool)
         |> TsDecode.andMap (TsDecode.field "taskCompletionShowUtcOffset" TsDecode.bool)
+        |> TsDecode.andMap (TsDecode.succeed "")
 
 
 
@@ -126,6 +144,7 @@ v_0_12_0_decoder =
         |> TsDecode.andMap (TsDecode.field "taskCompletionFormat" taskCompletionFormatDecoder)
         |> TsDecode.andMap (TsDecode.field "taskCompletionInLocalTime" TsDecode.bool)
         |> TsDecode.andMap (TsDecode.field "taskCompletionShowUtcOffset" TsDecode.bool)
+        |> TsDecode.andMap (TsDecode.succeed "")
 
 
 v_0_11_0_decoder : TsDecode.Decoder GlobalSettings
@@ -138,6 +157,7 @@ v_0_11_0_decoder =
         |> TsDecode.andMap (TsDecode.field "taskCompletionFormat" taskCompletionFormatDecoder)
         |> TsDecode.andMap (TsDecode.succeed False)
         |> TsDecode.andMap (TsDecode.succeed False)
+        |> TsDecode.andMap (TsDecode.succeed "")
 
 
 v_0_10_0_decoder : TsDecode.Decoder GlobalSettings
@@ -150,6 +170,7 @@ v_0_10_0_decoder =
         |> TsDecode.andMap (TsDecode.field "taskCompletionFormat" taskCompletionFormatDecoder)
         |> TsDecode.andMap (TsDecode.succeed False)
         |> TsDecode.andMap (TsDecode.succeed False)
+        |> TsDecode.andMap (TsDecode.succeed "")
 
 
 v_0_9_0_decoder : TsDecode.Decoder GlobalSettings
@@ -162,6 +183,7 @@ v_0_9_0_decoder =
         |> TsDecode.andMap (TsDecode.field "taskCompletionFormat" taskCompletionFormatDecoder)
         |> TsDecode.andMap (TsDecode.succeed False)
         |> TsDecode.andMap (TsDecode.succeed False)
+        |> TsDecode.andMap (TsDecode.succeed "")
 
 
 v_0_8_0_decoder : TsDecode.Decoder GlobalSettings
@@ -174,6 +196,7 @@ v_0_8_0_decoder =
         |> TsDecode.andMap (TsDecode.field "taskCompletionFormat" taskCompletionFormatDecoder)
         |> TsDecode.andMap (TsDecode.succeed False)
         |> TsDecode.andMap (TsDecode.succeed False)
+        |> TsDecode.andMap (TsDecode.succeed "")
 
 
 v_0_7_0_decoder : TsDecode.Decoder GlobalSettings
@@ -186,6 +209,7 @@ v_0_7_0_decoder =
         |> TsDecode.andMap (TsDecode.field "taskCompletionFormat" taskCompletionFormatDecoder)
         |> TsDecode.andMap (TsDecode.succeed False)
         |> TsDecode.andMap (TsDecode.succeed False)
+        |> TsDecode.andMap (TsDecode.succeed "")
 
 
 v_0_6_0_decoder : TsDecode.Decoder GlobalSettings
@@ -198,6 +222,7 @@ v_0_6_0_decoder =
         |> TsDecode.andMap (TsDecode.field "taskCompletionFormat" taskCompletionFormatDecoder)
         |> TsDecode.andMap (TsDecode.succeed False)
         |> TsDecode.andMap (TsDecode.succeed False)
+        |> TsDecode.andMap (TsDecode.succeed "")
 
 
 v_0_5_0_decoder : TsDecode.Decoder GlobalSettings
@@ -210,6 +235,7 @@ v_0_5_0_decoder =
         |> TsDecode.andMap (TsDecode.field "taskUpdateFormat" taskCompletionFormatDecoder)
         |> TsDecode.andMap (TsDecode.succeed False)
         |> TsDecode.andMap (TsDecode.succeed False)
+        |> TsDecode.andMap (TsDecode.succeed "")
 
 
 

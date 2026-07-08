@@ -126,6 +126,7 @@ type Msg
     | EnteredDatedColumnRangeValueTo Int String
     | EnteredDefaultColumnName String String
     | EnteredNewBoardName String
+    | EnteredNewTaskFile String
     | EnteredNewColumnName String
     | EnteredName String
     | FilterCandidatesReceived (List Filter)
@@ -317,6 +318,15 @@ update msg model =
 
         EnteredNewBoardName name ->
             mapBoardBeingAdded (NewBoardForm.updateName name) model
+
+        EnteredNewTaskFile path ->
+            wrap
+                { model
+                    | settingsState =
+                        SettingsState.mapGlobalSettings
+                            (SettingsForm.updateNewTaskFile path)
+                            model.settingsState
+                }
 
         EnteredNewColumnName name ->
             mapColumnBeingAdded (NewColumnForm.updateName name) model
@@ -1080,6 +1090,23 @@ globalSettingsForm dataviewTaskCompletion timeWithZone defaultFirstDayOfWeek mul
     in
     [ Html.div [ class "setting-items-inner" ]
         ([ Html.h3 [] [ Html.text "Miscellaneous" ]
+         , Html.div [ class "setting-item" ]
+            [ Html.div [ class "setting-item-info" ]
+                [ Html.div [ class "setting-item-name" ]
+                    [ Html.text "New task file" ]
+                , Html.div [ class "setting-item-description" ]
+                    [ Html.text "The file new tasks are appended to when using the + button on a column. The file will be created if it does not exist." ]
+                ]
+            , Html.div [ class "setting-item-control" ]
+                [ Html.input
+                    [ type_ "text"
+                    , placeholder "e.g. Inbox.md"
+                    , value settingsForm.newTaskFile
+                    , onInput EnteredNewTaskFile
+                    ]
+                    []
+                ]
+            ]
          , Html.div [ class "setting-item" ]
             [ Html.div [ class "setting-item-info" ]
                 [ Html.div [ class "setting-item-name" ]

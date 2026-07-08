@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm test *)",
+      "Bash(perl -i -0pe 's/\\(, ignoreFileNameDates = False\\\\n\\(\\\\s*\\)\\), otherTags/$1, ignoreFileNameDates = False\\\\n$2, newTaskFile = \"\"\\\\n$2, otherTags/g' tests/Form/SettingsStateTests.elm tests/Form/SettingsTests.elm)",
+      "Bash(perl -i -0pe 's/\\(, ignoreFileNameDates = False\\)\\\\n\\(\\\\s*\\), ignoreFileNameDates = False\\\\n\\(\\\\s*\\), newTaskFile/$1\\\\n$2, newTaskFile/g' tests/InteropDefinitionsTests.elm tests/GlobalSettingsTests.elm tests/SettingsTests.elm)",
+      "Bash(npm run *)"
+    ]
+  }
+}

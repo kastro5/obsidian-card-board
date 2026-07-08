@@ -90,11 +90,11 @@ cleanupNames =
 currentVersion : Test
 currentVersion =
     describe "currentVersion"
-        [ test "is 0.13.0" <|
+        [ test "is 0.14.0" <|
             \() ->
                 Settings.currentVersion
                     |> Semver.print
-                    |> Expect.equal "0.13.0"
+                    |> Expect.equal "0.14.0"
         ]
 
 
@@ -374,6 +374,7 @@ exampleGlobalSettings =
     , filters = []
     , firstDayOfWeek = GlobalSettings.FromLocale
     , ignoreFileNameDates = False
+    , newTaskFile = ""
     , taskCompletionFormat = GlobalSettings.NoCompletion
     , taskCompletionInLocalTime = False
     , taskCompletionShowUtcOffset = False
