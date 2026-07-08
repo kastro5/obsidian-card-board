@@ -1105,7 +1105,7 @@ columnGhostView boardId today isDragging dragTracker draggedColumn =
                             [ Html.text <| columnCountString column ]
                         ]
                     , Html.Keyed.ul [ class "card-board-column-list" ]
-                        (List.map (cardView today) (Column.cards (ghostBoardId boardId) column))
+                        (List.map (cardView today column) (Column.cards (ghostBoardId boardId) column))
                     ]
                 ]
 
@@ -1165,7 +1165,7 @@ columnView draggedId boardId columnIndex today column =
                     [ Html.text <| name ]
                 , Html.span [ class "sub-text" ]
                     [ Html.text <| columnCountString column ]
-                , if not (Column.isCompleted column) then
+                , if Column.supportsTaskMutation column then
                     Html.div
                         [ class "card-board-add-task-button"
                         , attribute "aria-label" "Add task"
@@ -1181,16 +1181,20 @@ columnView draggedId boardId columnIndex today column =
                   else
                     empty
                 ]
-            , beacon cardDropBeaconType (BeaconPosition.Before name)
+            , if Column.supportsTaskMutation column then
+                beacon cardDropBeaconType (BeaconPosition.Before name)
+
+              else
+                empty
             , Html.Keyed.ul [ class "card-board-column-list" ]
-                (List.map (cardView today) (Column.cards boardId column))
+                (List.map (cardView today column) (Column.cards boardId column))
             ]
         , beacon columnBeaconType (BeaconPosition.After name)
         ]
 
 
-cardView : Date -> Card -> ( String, Html Msg )
-cardView today card =
+cardView : Date -> Column -> Card -> ( String, Html Msg )
+cardView today column card =
     let
         cardId : String
         cardId =
@@ -1236,23 +1240,27 @@ cardView today card =
         ]
         [ Html.div [ class ("card-board-card-highlight-area " ++ highlightAreaClass) ]
             []
-        , Html.div
-            [ class "card-board-card-drag-handle"
-            , nonPropogatingOnDown <|
-                \e ->
-                    CardDragStart
-                        ( "card-drag:" ++ cardId
-                        , { uniqueId = taskItemId
-                          , clientPos = Coords.fromFloatTuple e.clientPos
-                          , offsetPos = Coords.fromFloatTuple e.offsetPos
-                          }
-                        )
-            ]
-            [ FeatherIcons.menu
-                |> FeatherIcons.withSize 1
-                |> FeatherIcons.withSizeUnit "em"
-                |> FeatherIcons.toHtml []
-            ]
+        , if Column.supportsTaskMutation column then
+            Html.div
+                [ class "card-board-card-drag-handle"
+                , nonPropogatingOnDown <|
+                    \e ->
+                        CardDragStart
+                            ( "card-drag:" ++ cardId
+                            , { uniqueId = taskItemId
+                              , clientPos = Coords.fromFloatTuple e.clientPos
+                              , offsetPos = Coords.fromFloatTuple e.offsetPos
+                              }
+                            )
+                ]
+                [ FeatherIcons.menu
+                    |> FeatherIcons.withSize 1
+                    |> FeatherIcons.withSizeUnit "em"
+                    |> FeatherIcons.toHtml []
+                ]
+
+          else
+            empty
         , Html.div [ class "card-board-card-content-area" ]
             [ Html.input
                 [ type_ "checkbox"
@@ -1552,11 +1560,15 @@ moveCardToColumn session taskItemId targetColumnName =
 
         maybeSourceColumn : Maybe Column
         maybeSourceColumn =
-            LE.find (\col -> Column.containsTask taskItemId col) boardColumns
+            boardColumns
+                |> List.filter Column.supportsTaskMutation
+                |> LE.find (\col -> Column.containsTask taskItemId col)
 
         maybeTargetColumn : Maybe Column
         maybeTargetColumn =
-            LE.find (\col -> Column.name col == targetColumnName) boardColumns
+            boardColumns
+                |> List.filter Column.supportsTaskMutation
+                |> LE.find (\col -> Column.name col == targetColumnName)
     in
     case ( maybeTask, maybeSourceColumn, maybeTargetColumn ) of
         ( Just taskItem, Just sourceColumn, Just targetColumn ) ->

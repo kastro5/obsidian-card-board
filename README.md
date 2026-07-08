@@ -1,9 +1,8 @@
-
-### Note
-This fork has added functionality to drag and drop tasks between columns, and quickly add new tasks directly to a column.
-It is probably buggy, and made for my specific use case.
-
 # Obsidian CardBoard Plugin
+
+## Development Fork
+
+This fork combines experimental custom filter columns with experimental task drag/drop and quick-add behavior. The plugin id is `card-board-kastro` so it can be tested alongside the official CardBoard plugin.
 
 ![License](https://img.shields.io/github/license/roovo/obsidian-card-board)
 ![GitHub release (latest by date)](https://img.shields.io/github/v/release/roovo/obsidian-card-board?style=flat-square)
@@ -14,9 +13,10 @@ An [Obsidian](https://obsidian.md/) plugin to make working with tasks a pleasure
 
 - Uses regular tasks/subtasks wherever they are in your vault.
 - Shows them on kanban style boards.
-- Two column types supported (any combination can be on a single board):
+- Column types supported (any combination can be on a single board):
   - Date based (with daily/periodic notes support).
   - Tag based (use `#tags` to define columns).
+  - Custom filter based.
 
 ## New
 - No new features: I have split out some of the internal workings in preparation

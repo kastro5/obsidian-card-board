@@ -22,6 +22,7 @@ module Column exposing
     , setCollapse
     , setNameToDefault
     , setTagsToHide
+    , supportsTaskMutation
     , toggleCollapse
     , typeString
     , undated
@@ -45,7 +46,6 @@ import PlacementResult exposing (PlacementResult)
 import TaskItem exposing (TaskItem)
 import TsJson.Decode as TsDecode
 import TsJson.Encode as TsEncode
-import Html exposing (col)
 
 
 
@@ -217,6 +217,19 @@ newTaskSuffix maybeDueDateStr column =
 
         _ ->
             ""
+
+
+supportsTaskMutation : Column -> Bool
+supportsTaskMutation column =
+    case column of
+        Dated _ ->
+            True
+
+        NamedTag _ ->
+            True
+
+        _ ->
+            False
 
 
 containsTask : String -> Column -> Bool

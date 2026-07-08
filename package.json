@@ -1,5 +1,5 @@
 {
-  "name": "cardboard",
+  "name": "cardboard-kastro",
   "version": "0.7.9",
   "description": "Card based view for your obsidian Tasks",
   "main": "main.js",
@@ -12,7 +12,7 @@
     "test-ts": "jest"
   },
   "keywords": [],
-  "author": "roovo",
+  "author": "Kastro5",
   "license": "MIT",
   "devDependencies": {
     "@types/jest": "^29.5.8",
