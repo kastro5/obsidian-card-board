@@ -1,5 +1,5 @@
 {
-  "name": "cardboard-kastro",
+  "name": "cardboard-enhanced",
   "version": "0.7.9",
   "description": "Card based view for your obsidian Tasks",
   "main": "main.js",
@@ -9,7 +9,8 @@
     "generate": "elm-ts-interop --definition-module InteropDefinitions --output src/Main/index.d.ts",
     "generate-worker": "elm-ts-interop --definition-module Worker.InteropDefinitions --entrypoint Worker --output src/Worker/index.d.ts",
     "test": "elm-test tests",
-    "test-ts": "jest"
+    "test-ts": "jest",
+    "deploy:vault": "powershell -ExecutionPolicy Bypass -File scripts/deploy-to-vault.ps1"
   },
   "keywords": [],
   "author": "Kastro5",

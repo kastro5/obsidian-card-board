@@ -1,6 +1,6 @@
 {
-	"id": "card-board-kastro",
-	"name": "CardBoard Kastro",
+	"id": "card-board-enhanced",
+	"name": "CardBoard Enhanced",
 	"description": "Display markdown tasks on kanban style boards.",
 	"version": "0.7.9",
 	"author": "Kastro5",

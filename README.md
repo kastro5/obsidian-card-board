@@ -2,7 +2,7 @@
 
 ## Development Fork
 
-This fork combines experimental custom filter columns with experimental task drag/drop and quick-add behavior. The plugin id is `card-board-kastro` so it can be tested alongside the official CardBoard plugin.
+This fork combines experimental custom filter columns with experimental task drag/drop and quick-add behavior. The plugin id is `card-board-enhanced` so it can be tested alongside the official CardBoard plugin.
 
 ![License](https://img.shields.io/github/license/roovo/obsidian-card-board)
 ![GitHub release (latest by date)](https://img.shields.io/github/v/release/roovo/obsidian-card-board?style=flat-square)
