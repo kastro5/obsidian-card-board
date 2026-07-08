@@ -37,7 +37,7 @@ import InteropPorts
 import Json.Encode as JE
 import List.Extra as LE
 import Maybe.Extra as ME
-import Page.Helper.Multiselect as MultiSelect
+import Page.Helper.MultiSelect as MultiSelect
 import SafeZipper exposing (SafeZipper)
 import Session exposing (Session, TaskCompletionSettings)
 import Settings exposing (Settings)
@@ -121,6 +121,7 @@ type Msg
     | EnteredColumnCompletedLimit Int String
     | EnteredColumnName Int String
     | EnteredColumnNamedTagTag Int String
+    | EnteredCustomFilterFilterExpression Int String
     | EnteredDatedColumnRangeValueFrom Int String
     | EnteredDatedColumnRangeValueTo Int String
     | EnteredDefaultColumnName String String
@@ -295,6 +296,9 @@ update msg model =
 
         EnteredColumnNamedTagTag columnIndex tag ->
             mapCurrentColumnsForm (ColumnsForm.updateNamedTagTag columnIndex tag) model
+
+        EnteredCustomFilterFilterExpression columnIndex expression ->
+            mapCurrentColumnsForm (ColumnsForm.updateCustomFilterFilterExpression columnIndex expression) model
 
         EnteredDatedColumnRangeValueFrom index value ->
             mapCurrentColumnsForm (ColumnsForm.updateDatedColumnRangeValueFrom index value) model
@@ -1447,12 +1451,19 @@ boardSettingsForm boardConfigForm boardIndex defaultColumnNames multiSelect drag
                         []
                     ]
                 ]
-            , Html.div [ class "setting-item dialog-buttons" ]
-                [ Html.button
-                    [ class "mod-warning"
-                    , onClick DeleteBoardRequested
+            , Html.div [ class "setting-item" ]
+                [ Html.div [ class "setting-item-info" ]
+                    [ Html.div [ class "setting-item-name" ]
+                        [ Html.text "Delete this board" ]
+                    , Html.div [ class "setting-item-description" ]
+                        [ Html.text "Delete this board" ]
                     ]
-                    [ Html.text "Delete this board"
+                , Html.div [ class "setting-item-control" ]
+                    [ Html.button
+                        [ class "mod-warning"
+                        , onClick DeleteBoardRequested
+                        ]
+                        [ Html.text "Delete this board" ]
                     ]
                 ]
             ]
@@ -1488,7 +1499,7 @@ settingsColumnView uniqueId defaultColumnNames index columnForm =
             , attributeIf isBeingDragged (style "opacity" "0.0")
             ]
             [ Html.div
-                [ class "cardboard-settings-column-item-detail card-board-dragable"
+                [ class "cardboard-settings-column-item-draghandle card-board-dragable"
                 , onDown
                     (\e ->
                         ColumnSettingsMouseDown <|
@@ -1500,30 +1511,29 @@ settingsColumnView uniqueId defaultColumnNames index columnForm =
                             )
                     )
                 ]
-                [ FeatherIcons.toHtml
-                    []
-                    dragIcon
-                ]
-            , Html.div [ class "cardboard-settings-column-item-type" ]
-                [ Html.text <| ColumnForm.typeString columnForm ]
-            , Html.div [ class "cardboard-settings-column-item-detail" ]
-                [ Html.input
-                    [ type_ "text"
-                    , placeholder defaultName
-                    , value name
-                    , onInput <| EnteredColumnName index
+                [ FeatherIcons.toHtml [] dragIcon ]
+            , Html.div [ class "cardboard-settings-column-item-content" ]
+                [ Html.div [ class "cardboard-settings-column-item-type" ]
+                    [ Html.text <| ColumnForm.typeString columnForm ]
+                , Html.div [ class "cardboard-settings-column-item-detail" ]
+                    [ Html.input
+                        [ type_ "text"
+                        , placeholder defaultName
+                        , value name
+                        , onInput <| EnteredColumnName index
+                        ]
+                        []
                     ]
-                    []
-                ]
-            , settingsColumnControlView index columnForm
-            , Html.div
-                [ class "cardboard-settings-column-item-button"
-                , onClick <| ColumnDeleteClicked index
-                ]
-                [ FeatherIcons.xCircle
-                    |> FeatherIcons.withSize 1
-                    |> FeatherIcons.withSizeUnit "em"
-                    |> FeatherIcons.toHtml []
+                , settingsColumnControlView index columnForm
+                , Html.div
+                    [ class "cardboard-settings-column-item-button"
+                    , onClick <| ColumnDeleteClicked index
+                    ]
+                    [ FeatherIcons.xCircle
+                        |> FeatherIcons.withSize 1
+                        |> FeatherIcons.withSizeUnit "em"
+                        |> FeatherIcons.toHtml []
+                    ]
                 ]
             ]
         , columnSettingsBeacon (BeaconPosition.After name)
@@ -1553,23 +1563,28 @@ settingsColumnDraggedView isDragging columnForm dragTracker =
                     , style "cursor" "grabbing"
                     , style "opacity" "0.85"
                     ]
-                    [ FeatherIcons.toHtml [] dragIcon
-                    , Html.div [ class "cardboard-settings-column-item-type" ]
-                        [ Html.text <| ColumnForm.typeString draggedColumnForm ]
-                    , Html.div [ class "cardboard-settings-column-item-detail" ]
-                        [ Html.input
-                            [ type_ "text"
-                            , value <| ColumnForm.name draggedColumnForm
-                            ]
-                            []
+                    [ Html.div
+                        [ class "cardboard-settings-column-item-draghandle card-board-dragable"
                         ]
-                    , settingsColumnControlView 0 draggedColumnForm
-                    , Html.div
-                        [ class "cardboard-settings-column-item-button" ]
-                        [ FeatherIcons.xCircle
-                            |> FeatherIcons.withSize 1
-                            |> FeatherIcons.withSizeUnit "em"
-                            |> FeatherIcons.toHtml []
+                        [ FeatherIcons.toHtml [] dragIcon ]
+                    , Html.div [ class "cardboard-settings-column-item-content" ]
+                        [ Html.div [ class "cardboard-settings-column-item-type" ]
+                            [ Html.text <| ColumnForm.typeString draggedColumnForm ]
+                        , Html.div [ class "cardboard-settings-column-item-detail" ]
+                            [ Html.input
+                                [ type_ "text"
+                                , value <| ColumnForm.name draggedColumnForm
+                                ]
+                                []
+                            ]
+                        , settingsColumnControlView 0 draggedColumnForm
+                        , Html.div
+                            [ class "cardboard-settings-column-item-button" ]
+                            [ FeatherIcons.xCircle
+                                |> FeatherIcons.withSize 1
+                                |> FeatherIcons.withSizeUnit "em"
+                                |> FeatherIcons.toHtml []
+                            ]
                         ]
                     ]
                 ]
@@ -1590,6 +1605,17 @@ settingsColumnControlView index columnForm =
                     , value completedForm.limit
                     , attribute "size" "3"
                     , onInput <| EnteredColumnCompletedLimit index
+                    ]
+                    []
+                ]
+
+        ColumnForm.CustomFilterColumnForm _ customFilterForm ->
+            Html.div [ class "cardboard-settings-column-item-controls" ]
+                [ Html.text <| "Filter: "
+                , Html.input
+                    [ type_ "text"
+                    , value <| customFilterForm.filterExpression
+                    , onInput <| EnteredCustomFilterFilterExpression index
                     ]
                     []
                 ]
